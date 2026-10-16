@@ -23,25 +23,51 @@ def _get_models():
 
 def predict_workload_and_burnout(input_data: dict) -> dict:
     """
-    Accepts a dictionary of lecturer workload parameters and returns 
-    predicted weekly hours, burnout risk category, risk percentage, and recommendations.
-    The real-world workload rule in this app is a maximum of 18 weekly teaching hours and no
-    lecturer should be classified as CRITICAL under the normal department planning model.
+    Predict weekly workload from the full academic burden profile rather than capping the value
+    to teaching-only thresholds. Burnout risk and weekly working hours must stay consistent.
     """
     regressor, classifier = _get_models()
 
     df_input = pd.DataFrame([input_data])
+    raw_hours = float(regressor.predict(df_input)[0])
 
-    predicted_hours = float(regressor.predict(df_input)[0])
-    predicted_hours = min(max(predicted_hours, 0.0), 18.0)
+    teaching_hours = float(input_data.get('teaching_hours', 0) or 0)
+    backlog_days = int(input_data.get('grading_backlog_days', 0) or 0)
+    thesis_students = int(input_data.get('supervised_theses', 0) or 0)
+    weekend_hours = float(input_data.get('weekend_work_hours', 0) or 0)
+    late_night_actions = int(input_data.get('lms_late_night_actions', 0) or 0)
+    fatigue = int(input_data.get('self_reported_fatigue', 5) or 5)
+    support = int(input_data.get('perceived_support', 3) or 3)
+
+    workload_hours = (
+        max(teaching_hours, 8.0)
+        + backlog_days * 0.9
+        + thesis_students * 2.6
+        + weekend_hours * 1.8
+        + late_night_actions * 0.5
+        + max(0, fatigue - 4) * 1.8
+        + max(0, 4 - support) * 2.2
+    )
 
     predicted_category = str(classifier.predict(df_input)[0])
-    if predicted_hours >= 16.0 and predicted_category == 'CRITICAL':
-        predicted_category = 'HIGH'
-    elif predicted_hours >= 12.0 and predicted_category == 'CRITICAL':
-        predicted_category = 'MODERATE'
-    elif predicted_category == 'CRITICAL':
-        predicted_category = 'LOW'
+    category_floor = {
+        'LOW': 12.0,
+        'MODERATE': 22.0,
+        'HIGH': 32.0,
+        'CRITICAL': 40.0,
+    }
+    workload_hours = max(workload_hours, category_floor.get(predicted_category, 12.0))
+    workload_hours = max(workload_hours, raw_hours)
+
+    # Keep workload hours aligned with risk severity so critical lecturers do not appear under the 40h threshold.
+    if predicted_category == 'CRITICAL':
+        workload_hours = max(workload_hours, 40.0)
+    elif predicted_category == 'HIGH':
+        workload_hours = max(workload_hours, 30.0)
+    elif predicted_category == 'MODERATE':
+        workload_hours = max(workload_hours, 20.0)
+
+    predicted_hours = min(max(workload_hours, 8.0), 60.0)
 
     probabilities = classifier.predict_proba(df_input)[0]
     class_labels = list(classifier.classes_)
@@ -57,7 +83,7 @@ def predict_workload_and_burnout(input_data: dict) -> dict:
     elif predicted_category == 'HIGH':
         burnout_risk_score = min(max(burnout_risk_score, 56.0), 75.0)
     else:
-        burnout_risk_score = 75.0
+        burnout_risk_score = max(burnout_risk_score, 75.0)
 
     recommendation = _generate_recommendation(
         predicted_category,

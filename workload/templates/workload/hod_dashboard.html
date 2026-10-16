@@ -554,7 +554,7 @@
 
 
                     <!-- Backlog -->
-                    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <!-- <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -580,7 +580,7 @@
                         <div class="mt-4 h-1.5 rounded-full bg-slate-100">
                             <div class="h-1.5 w-[70%] rounded-full bg-slate-600"></div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </section>
 
@@ -970,14 +970,10 @@
                                         <p class="text-xs font-bold uppercase tracking-wide text-slate-500">
                                             Course Load
                                         </p>
-                                        <p class="mt-1 text-sm font-bold text-slate-900">
-                                            24 active course assignments
-                                        </p>
+                                        <p class="mt-1 text-sm font-bold text-slate-900" x-text="`${totalActiveCourseAssignments} active course assignments`"></p>
                                     </div>
 
-                                    <span class="text-sm font-black text-amber-600">
-                                        42.5h avg.
-                                    </span>
+                                    <span class="text-sm font-black text-amber-600" x-text="`${Number(dashboardStats.avgHours || 0).toFixed(1)}h avg.`"></span>
                                 </div>
                             </div>
 
@@ -987,14 +983,10 @@
                                         <p class="text-xs font-bold uppercase tracking-wide text-slate-500">
                                             Thesis Supervision
                                         </p>
-                                        <p class="mt-1 text-sm font-bold text-slate-900">
-                                            18 active students
-                                        </p>
+                                        <p class="mt-1 text-sm font-bold text-slate-900" x-text="`${totalActiveThesisStudents} active students`"></p>
                                     </div>
 
-                                    <span class="text-sm font-black text-slate-700">
-                                        6 lecturers
-                                    </span>
+                                    <span class="text-sm font-black text-slate-700" x-text="`${thesisSupervisingLecturers} lecturers`"></span>
                                 </div>
                             </div>
 
@@ -1004,14 +996,10 @@
                                         <p class="text-xs font-bold uppercase tracking-wide text-red-600">
                                             Grading Overload
                                         </p>
-                                        <p class="mt-1 text-sm font-bold text-red-900">
-                                            2 lecturers above grading capacity
-                                        </p>
+                                        <p class="mt-1 text-sm font-bold text-red-900" x-text="`${overloadedGradingLecturers} lecturers above grading capacity`"></p>
                                     </div>
 
-                                    <span class="text-sm font-black text-red-600">
-                                        +14 days
-                                    </span>
+                                    <span class="text-sm font-black text-red-600" x-text="`+${gradingOverloadDays} days`"></span>
                                 </div>
                             </div>
                         </div>
@@ -1047,12 +1035,12 @@
                                             Course Rebalancing
                                         </p>
                                         <p class="mt-1 text-sm font-bold text-slate-900">
-                                            Move <span x-text="Math.min(2, modules.length)"></span> modules to available capacity
+                                            Move <span x-text="recommendedCourseShiftCount"></span> modules to available capacity
                                         </p>
                                     </div>
 
                                     <span class="text-sm font-black text-emerald-600">
-                                        <span x-text="`-${Math.min(6.5, Math.max(0, dashboardStats.avgHours - 18)).toFixed(1)}h`"></span>
+                                        <span x-text="`-${Math.max(0, (dashboardStats.avgHours || 0) - recommendedAvgHours).toFixed(1)}h`"></span>
                                     </span>
                                 </div>
                             </div>
@@ -1064,12 +1052,12 @@
                                             Thesis Redistribution
                                         </p>
                                         <p class="mt-1 text-sm font-bold text-slate-900">
-                                            Transfer <span x-text="Math.max(0, dashboardStats.criticalAlerts * 2)"></span> students to capacity-matched supervisors
+                                            Transfer <span x-text="recommendedStudentShiftCount"></span> students to capacity-matched supervisors
                                         </p>
                                     </div>
 
                                     <span class="text-sm font-black text-emerald-600">
-                                        <span x-text="`-${Math.min(3, dashboardStats.criticalAlerts * 1.5).toFixed(1)}h`"></span>
+                                        <span x-text="`-${Math.max(0, (dashboardStats.avgHours || 0) - recommendedAvgHours).toFixed(1)}h`"></span>
                                     </span>
                                 </div>
                             </div>
@@ -1086,7 +1074,7 @@
                                     </div>
 
                                     <span class="text-sm font-black text-emerald-700">
-                                        <span x-text="`${dashboardStats.avgHours.toFixed(1)}h avg`"></span>
+                                        <span x-text="`${recommendedAvgHours}h avg`"></span>
                                     </span>
                                 </div>
                             </div>
@@ -1412,7 +1400,7 @@
                                 </svg>
                             </button>
 
-                            <button
+                            <!-- <button
                                 type="button"
                                 @click="downloadAuditPackage('audit_package.csv')"
                                 class="flex w-full items-center justify-between rounded-xl bg-[#0D2C54] px-4 py-3 text-left text-white transition hover:bg-[#123b6d]"
@@ -1435,7 +1423,7 @@
                                 <svg class="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                                 </svg>
-                            </button>
+                            </button> -->
                         </div>
                     </div>
                 </div>
@@ -1672,29 +1660,20 @@
 
             <div class="space-y-5 p-5">
 
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
+                <div class="grid grid-cols-1 gap-4">
                     <div>
                         <label class="mb-2 block text-xs font-bold text-slate-700">
                             Module / Course
                         </label>
 
-                        <select class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50">
+                        <select
+                            x-model="selectedModuleCode"
+                            class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                        >
                             <template x-for="module in modules" :key="module.code">
                                 <option :value="module.code" x-text="`${module.code} — ${module.name}`"></option>
                             </template>
-                            <option x-show="modules.length === 0">No module assignments found</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="mb-2 block text-xs font-bold text-slate-700">
-                            Thesis Cohort
-                        </label>
-
-                        <select class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50">
-                            <option>2026 — Final Year</option>
-                            <option>2026 — Third Year</option>
+                            <option x-show="modules.length === 0" value="">No module assignments found</option>
                         </select>
                     </div>
                 </div>
@@ -1741,23 +1720,46 @@
                         <template x-for="(lecturer, index) in recommendedLecturers" :key="lecturer.id">
                             <label
                                 class="flex cursor-pointer items-center justify-between rounded-xl border p-4"
-                                :class="index === 0 ? 'border-blue-200 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'"
+                                :class="selectedRecommendedLecturerId === lecturer.id ? 'border-blue-200 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'"
                             >
                             <div class="flex items-center gap-3">
                                 <input
                                     type="radio"
                                     name="recommended_lecturer"
-                                    :checked="index === 0"
+                                    x-model="selectedRecommendedLecturerId"
+                                    :value="lecturer.id"
+                                    :checked="selectedRecommendedLecturerId === lecturer.id"
                                     class="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"
                                 >
 
                                 <div>
-                                    <p class="text-sm font-bold text-slate-900" x-text="lecturer.name"></p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-sm font-bold text-slate-900" x-text="lecturer.name"></p>
+                                        <span
+                                            class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide"
+                                            :class="index === 0 ? 'bg-emerald-100 text-emerald-700' : index === 1 ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'"
+                                            x-text="index === 0 ? 'Best fit' : index === 1 ? 'Strong match' : 'Backup'"
+                                        ></span>
+                                    </div>
                                     <p class="text-xs text-slate-500" x-text="`${lecturer.speciality} · ${lecturer.hours}h current`"></p>
+                                    <div class="mt-1 flex flex-wrap gap-1">
+                                        <span
+                                            class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600"
+                                            x-text="lecturer.reason ? lecturer.reason.split(' • ')[0] : 'Good fit'"
+                                        ></span>
+                                        <span
+                                            x-show="lecturer.reason && lecturer.reason.split(' • ').length > 1"
+                                            class="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700"
+                                            x-text="lecturer.reason.split(' • ')[1]"
+                                        ></span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <span class="text-xs font-black" :class="index === 0 ? 'text-emerald-600' : 'text-blue-600'" x-text="`${lecturer.match}% match`"></span>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="text-xs font-black" :class="selectedRecommendedLecturerId === lecturer.id ? 'text-emerald-600' : 'text-blue-600'" x-text="`${lecturer.match}% match`"></span>
+                                <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400" x-text="index === 0 ? 'Priority' : index === 1 ? 'Alternate' : 'Reserve'"></span>
+                            </div>
                             </label>
                         </template>
                         <p x-show="recommendedLecturers.length === 0" class="rounded-xl border border-slate-200 p-4 text-sm text-slate-500">
@@ -1905,7 +1907,7 @@
             allocationModal: false,
             rebalancingModal: false,
             rebalancingApplied: false,
-            rebalanceMessage: '2 course assignments and 4 thesis students were shifted to lower-risk lecturers to reduce critical workload pressure.',
+            rebalanceMessage: 'AI rebalancing applied to reduce overload and improve workload balance across the department.',
             dashboardStats: initialDashboardData.dashboardStats || {
                 totalLecturers: 0,
                 avgHours: 0,
@@ -1921,6 +1923,9 @@
             },
 
             selectedLecturer: {},
+            recommendationSummary: null,
+            selectedModuleCode: '',
+            selectedRecommendedLecturerId: '',
 
             lecturers: initialDashboardData.lecturers || [],
             modules: initialDashboardData.modules || [],
@@ -1928,6 +1933,30 @@
 
             get filteredLecturers() {
                 return this.lecturers;
+            },
+
+            get totalActiveCourseAssignments() {
+                return this.modules.length;
+            },
+
+            get totalActiveThesisStudents() {
+                return this.lecturers.reduce((sum, lecturer) => sum + Number(lecturer.supervisedTheses || 0), 0);
+            },
+
+            get thesisSupervisingLecturers() {
+                return this.lecturers.filter((lecturer) => Number(lecturer.supervisedTheses || 0) > 0).length;
+            },
+
+            get gradingOverloadThreshold() {
+                return 7;
+            },
+
+            get overloadedGradingLecturers() {
+                return this.lecturers.filter((lecturer) => Number(lecturer.gradingBacklogDays || 0) > this.gradingOverloadThreshold).length;
+            },
+
+            get gradingOverloadDays() {
+                return this.lecturers.reduce((sum, lecturer) => sum + Math.max(0, Number(lecturer.gradingBacklogDays || 0) - this.gradingOverloadThreshold), 0);
             },
 
             get lowModerateCount() {
@@ -1938,18 +1967,68 @@
                 return this.lecturers.filter((lecturer) => lecturer.risk === 'High' || lecturer.risk === 'Critical').length;
             },
 
+            get selectedModule() {
+                if (!this.selectedModuleCode) {
+                    return this.modules[0] || null;
+                }
+                return this.modules.find((module) => module.code === this.selectedModuleCode) || this.modules[0] || null;
+            },
+
             get recommendedLecturers() {
+                const selectedModule = this.selectedModule;
+                const moduleText = (selectedModule?.name || '').toLowerCase();
+
                 return [...this.lecturers]
-                    .sort((left, right) => {
-                        const leftLoad = Number(left.hours) + Number(left.score) / 4;
-                        const rightLoad = Number(right.hours) + Number(right.score) / 4;
-                        return leftLoad - rightLoad;
+                    .map((lecturer) => {
+                        const speciality = (lecturer.speciality || '').toLowerCase();
+                        const isStrongSpecialityMatch = !!(moduleText && speciality && (
+                            moduleText.includes(speciality) || speciality.includes(moduleText)
+                        ));
+
+                        const workload = Number(lecturer.hours || 0);
+                        const targetHours = Number(lecturer.targetHours || lecturer.maxHours || 18);
+                        const capacityHeadroom = Math.max(0, targetHours - workload);
+                        const classLoad = Number(lecturer.classes || 0) * 1.8;
+                        const supervisionLoad = Number(lecturer.supervisedTheses || 0) * 3.4;
+                        const backlogDays = Number(lecturer.gradingBacklogDays || lecturer.backlogDays || 0);
+                        const riskWeight = lecturer.risk === 'Critical' ? 31 : lecturer.risk === 'High' ? 21 : lecturer.risk === 'Moderate' ? 11 : 0;
+                        const profileStrength = Number(lecturer.score || 0) * 0.42;
+                        const teachingLoadPenalty = workload * 2.6;
+                        const availabilityBonus = capacityHeadroom * 2.8;
+                        const fitBonus = isStrongSpecialityMatch ? 42 : 10;
+                        const idSeed = Number(String(lecturer.id || '').replace(/\D/g, '') || '0');
+                        const idVariance = (idSeed % 9) + 1;
+                        const match = Math.max(28, Math.min(97, Math.round(40 + fitBonus + availabilityBonus + profileStrength + classLoad - teachingLoadPenalty - supervisionLoad - riskWeight - (backlogDays * 1.5) + idVariance)));
+
+                        const reasons = [];
+                        if (isStrongSpecialityMatch) reasons.push('strong subject fit');
+                        if (capacityHeadroom > 0) reasons.push(`${capacityHeadroom.toFixed(1)}h spare capacity`);
+                        if (lecturer.risk === 'Low' || lecturer.risk === 'Moderate') reasons.push('lower overload risk');
+                        if (backlogDays <= 4) reasons.push('light grading backlog');
+                        if (reasons.length === 0) reasons.push('manageable current load');
+
+                        return {
+                            ...lecturer,
+                            match,
+                            reason: reasons.slice(0, 2).join(' • '),
+                        };
                     })
-                    .slice(0, 3)
-                    .map((lecturer) => ({
-                        ...lecturer,
-                        match: Math.max(0, Math.min(99, Math.round(100 - Number(lecturer.hours) * 2 - Number(lecturer.score) * 0.35)))
-                    }));
+                    .sort((left, right) => right.match - left.match)
+                    .slice(0, 3);
+            },
+
+            get recommendedCourseShiftCount() {
+                return Number(this.recommendationSummary?.rebalanced_courses || Math.max(1, Math.min(3, this.dashboardStats.criticalAlerts + 1)));
+            },
+
+            get recommendedStudentShiftCount() {
+                return Number(this.recommendationSummary?.reassigned_students || Math.max(2, this.dashboardStats.criticalAlerts * 2));
+            },
+
+            get recommendedAvgHours() {
+                const base = Number(this.dashboardStats.avgHours || 0);
+                const reduction = this.recommendedCourseShiftCount * 1.8 + this.recommendedStudentShiftCount * 0.2;
+                return Number(Math.max(8, base - reduction).toFixed(1));
             },
 
             init() {
@@ -1965,6 +2044,12 @@
                 }
                 if (parsed && parsed.leaveRecords) {
                     this.leaveRecords = parsed.leaveRecords;
+                }
+                if (this.modules.length && !this.selectedModuleCode) {
+                    this.selectedModuleCode = this.modules[0].code;
+                }
+                if (!this.selectedRecommendedLecturerId && this.recommendedLecturers.length) {
+                    this.selectedRecommendedLecturerId = this.recommendedLecturers[0].id;
                 }
 
                 this.syncDashboardFromLecturers();
@@ -2027,7 +2112,11 @@
                     : 0;
                 const criticalAlerts = this.lecturers.filter((lecturer) => lecturer.risk === 'Critical').length;
                 const totalBacklogDays = this.lecturers.reduce((sum, lecturer) => sum + Number(lecturer.backlogDays || lecturer.gradingBacklogDays || 0), 0);
-                const extraTeachingHours = Number(this.lecturers.reduce((sum, lecturer) => sum + Math.max(0, Number(lecturer.hours) - Number(lecturer.targetHours || 18)), 0).toFixed(1));
+                const computeExtraWorkloadPressure = (lecturer) => {
+                    const hours = Number(lecturer.hours || 0);
+                    return Math.max(0, hours - 40);
+                };
+                const extraTeachingHours = Number(this.lecturers.reduce((sum, lecturer) => sum + computeExtraWorkloadPressure(lecturer), 0).toFixed(1));
                 const totalTargetHours = this.lecturers.reduce((sum, lecturer) => sum + Number(lecturer.targetHours || 18), 0);
                 const extraTeachingExposure = totalTargetHours
                     ? Number(((extraTeachingHours / totalTargetHours) * 100).toFixed(1))
@@ -2072,8 +2161,34 @@
                 this.rebalancingModal = false;
 
                 const data = await this.fetchAiSummary('{% url "apply_ai_rebalancing" %}', 'AI rebalancing was not saved');
+                const breakdownByLecturer = new Map(
+                    (data?.details?.lecturerBreakdown || []).map((entry) => [entry.lecturerId, entry])
+                );
 
                 this.lecturers = this.lecturers.map((lecturer) => {
+                    const plan = breakdownByLecturer.get(lecturer.id) || null;
+
+                    if (plan) {
+                        const nextRisk = plan.afterRisk === 'LOW'
+                            ? 'Low'
+                            : plan.afterRisk === 'MODERATE'
+                                ? 'Moderate'
+                                : plan.afterRisk === 'HIGH'
+                                    ? 'High'
+                                    : 'Critical';
+
+                        return {
+                            ...lecturer,
+                            classes: Number(plan.afterClasses),
+                            hours: Number(plan.afterPredictedHours),
+                            score: Math.min(100, Number(plan.afterScore)),
+                            backlogDays: Number(plan.afterBacklogDays),
+                            gradingBacklogDays: Number(plan.afterBacklogDays),
+                            risk: nextRisk,
+                            targetHours: 18,
+                        };
+                    }
+
                     const reducedHours = Math.max(8, Number(lecturer.hours) - (lecturer.risk === 'Critical' ? 12 : 6));
                     const reducedScore = Math.max(15, Number(lecturer.score) - (lecturer.risk === 'Critical' ? 35 : 18));
                     const nextRisk = reducedScore < 35 ? 'Low' : reducedScore < 55 ? 'Moderate' : reducedScore < 75 ? 'High' : 'Critical';
@@ -2085,7 +2200,8 @@
                         score: Math.min(100, Number(reducedScore.toFixed(0))),
                         backlogDays: Math.max(0, Number(lecturer.backlogDays || 0) - 3),
                         gradingBacklogDays: Math.max(0, Number(lecturer.gradingBacklogDays || 0) - 3),
-                        risk: nextRisk
+                        risk: nextRisk,
+                        targetHours: 18,
                     };
                 });
 
@@ -2126,9 +2242,7 @@
                 return csvRows.join('\n');
             },
 
-            downloadCsvFile(filename, rows) {
-                const csv = this.buildExportCsv(rows);
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            downloadBlob(filename, blob) {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
@@ -2139,8 +2253,129 @@
                 URL.revokeObjectURL(url);
             },
 
-            downloadCsvReport(filename) {
-                this.downloadCsvFile(filename, this.buildDepartmentRows());
+            escapePdfText(value) {
+                return String(value || '')
+                    .replace(/[^\x00-\x7F]/g, '?')
+                    .replace(/\\/g, '\\\\')
+                    .replace(/\(/g, '\\(')
+                    .replace(/\)/g, '\\)')
+                    .replace(/\r/g, '');
+            },
+
+            pdfText(x, y, size, text) {
+                return `BT\n/F1 ${size} Tf\n1 0 0 1 ${x} ${y} Tm\n(${this.escapePdfText(text)}) Tj\nET\n`;
+            },
+
+            pdfRect(x, y, width, height, fill = false, color = '0 0 0') {
+                const colorCommand = fill ? `${color} rg\n` : `${color} RG\n`;
+                return `q\n${colorCommand}${x} ${y} ${width} ${height} re${fill ? ' f' : ' S'}\nQ\n`;
+            },
+
+            buildSimplePdf(content) {
+                const lines = (content || '').split('\n');
+                const streamParts = [];
+
+                streamParts.push(this.pdfText(50, 760, 18, 'Academic Workload Review Report'));
+                streamParts.push(this.pdfText(50, 738, 10, 'Head of Department Review | Prepared for Department Workload Planning'));
+                streamParts.push(this.pdfRect(45, 720, 520, 1, false, '0.75 0.75 0.75'));
+
+                const maxLineCount = 28;
+                const bodyLines = lines.slice(0, maxLineCount);
+                bodyLines.forEach((line, index) => {
+                    const y = 700 - (index * 18);
+                    streamParts.push(this.pdfText(50, y, 10, line));
+                });
+
+                const stream = streamParts.join('');
+                const objects = [
+                    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+                    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+                    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n',
+                    `4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
+                    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n'
+                ];
+
+                let pdf = '%PDF-1.4\n';
+                const offsets = [0];
+                for (const obj of objects) {
+                    offsets.push(pdf.length);
+                    pdf += obj;
+                }
+                const xrefStart = pdf.length;
+                pdf += `xref\n0 ${objects.length + 1}\n`;
+                pdf += '0000000000 65535 f \n';
+                for (let i = 1; i <= objects.length; i += 1) {
+                    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+                }
+                pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+                return new Blob([pdf], { type: 'application/pdf' });
+            },
+
+            downloadCsvFile(filename, rows) {
+                const csv = this.buildExportCsv(rows);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                this.downloadBlob(filename, blob);
+            },
+
+            downloadPdfReport(filename) {
+                const rows = this.buildDepartmentRows();
+                const riskCounts = {
+                    Low: 0,
+                    Moderate: 0,
+                    High: 0,
+                    Critical: 0,
+                };
+                this.lecturers.forEach((lecturer) => {
+                    if (lecturer.risk === 'Low') riskCounts.Low += 1;
+                    if (lecturer.risk === 'Moderate') riskCounts.Moderate += 1;
+                    if (lecturer.risk === 'High') riskCounts.High += 1;
+                    if (lecturer.risk === 'Critical') riskCounts.Critical += 1;
+                });
+
+                const maxRiskCount = Math.max(1, ...Object.values(riskCounts));
+                const rowsForPdf = rows.slice(0, 15);
+                const chartBar = (label, value, max) => {
+                    const width = Math.max(1, Math.round((value / max) * 18));
+                    return `${label.padEnd(9)} ${'#'.repeat(width)} ${value}`;
+                };
+                const generatedAt = new Date().toLocaleString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                });
+
+                const summaryLines = [
+                    'Department: ' + (this.lecturers[0]?.department || 'Academic Department'),
+                    `Generated: ${generatedAt}`,
+                    `Staff Reviewed: ${rows.length}`,
+                    `Average Weekly Hours: ${Number((this.dashboardStats.avgHours || 0)).toFixed(1)}h`,
+                    `Critical Alerts: ${this.dashboardStats.criticalAlerts || 0}`,
+                    `High Risk Lecturers: ${this.dashboardStats.highRiskLecturers || 0}`,
+                    `Backlog Days: ${this.dashboardStats.totalBacklogDays || 0}`,
+                    '',
+                    'Risk Distribution',
+                    `Low: ${riskCounts.Low}`,
+                    `Moderate: ${riskCounts.Moderate}`,
+                    `High: ${riskCounts.High}`,
+                    `Critical: ${riskCounts.Critical}`,
+                    '',
+                    'Risk Chart (relative scale)',
+                    chartBar('Low', riskCounts.Low, maxRiskCount),
+                    chartBar('Moderate', riskCounts.Moderate, maxRiskCount),
+                    chartBar('High', riskCounts.High, maxRiskCount),
+                    chartBar('Critical', riskCounts.Critical, maxRiskCount),
+                    '',
+                    'Lecturer Summary',
+                    ...rowsForPdf.map((row) => `${row.Name} | ${row.Speciality} | ${Number(row.WeeklyHours || 0).toFixed(1)}h | ${row.Risk}`),
+                ];
+
+                const pdfBlob = this.buildSimplePdf(summaryLines.join('\n'));
+                this.downloadBlob(filename, pdfBlob);
             },
 
             downloadHrDataset(filename) {
@@ -2150,16 +2385,24 @@
                     MaxWeeklyHours: 18,
                     TeachingCap: 2
                 }));
-                this.downloadCsvFile(filename, rows);
+                const csv = this.buildExportCsv(rows);
+                const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+                this.downloadBlob(filename.replace(/\.csv$/i, '.xls'), blob);
             },
 
             downloadAuditPackage(filename) {
-                const rows = this.buildDepartmentRows().map((row) => ({
-                    ...row,
-                    AuditStatus: 'Reviewed',
-                    Compliance: row.Risk === 'Low' || row.Risk === 'Moderate' ? 'Compliant' : 'Escalated'
-                }));
-                this.downloadCsvFile(filename, rows);
+                const content = [
+                    'Audit Package',
+                    'Reviewed lecturer workload data',
+                    '',
+                    ...this.buildDepartmentRows().map((row) => `${row.Name} | ${row.Risk} | WeeklyHours=${row.WeeklyHours} | Classes=${row.ClassesPerWeek}`)
+                ].join('\n');
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+                this.downloadBlob(filename.replace(/\.csv$/i, '.aud'), blob);
+            },
+
+            downloadCsvReport(filename) {
+                this.downloadPdfReport(filename.replace(/\.csv$/i, '.pdf'));
             },
 
             initializeCharts() {

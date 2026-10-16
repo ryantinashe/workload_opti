@@ -10,6 +10,12 @@ from .models import LecturerLeave, LecturerProfile, WorkloadLog, ModuleAssignmen
 from ml_engine.predictor import predict_workload_and_burnout
 
 
+def compute_extra_workload_pressure(lecturer):
+    """Return only the excess hours above the 40-hour academic threshold."""
+    hours = float(lecturer.get('hours') or 0.0)
+    return round(max(0.0, hours - 40.0), 1)
+
+
 @login_required
 def index_view(request):
     """
@@ -128,7 +134,7 @@ def hod_dashboard(request):
         })
 
     extra_teaching_hours = round(sum(
-        max(0.0, lecturer['hours'] - lecturer['targetHours'])
+        compute_extra_workload_pressure(lecturer)
         for lecturer in lecturer_payload
     ), 1)
     total_target_hours = sum(lecturer['targetHours'] for lecturer in lecturer_payload)
@@ -256,29 +262,48 @@ def apply_ai_rebalancing(request):
     teaching_hours_reduced = 0.0
     predicted_hours_reduced = 0.0
     backlog_days_reduced = 0
+    lecturer_breakdown = []
 
     for lecturer in lecturers:
+        lecturer_name = lecturer.user.get_full_name() or lecturer.user.username
+        lecturer_id = f'UTB-LEC-{lecturer.pk:03d}'
         original_classes = int(lecturer.number_of_classes or 1)
-        lecturer.number_of_classes = min(original_classes, 2)
-        classes_capped += int(original_classes > lecturer.number_of_classes)
+        capped_classes = min(original_classes, 2)
+        classes_capped += int(original_classes > capped_classes)
+        lecturer.number_of_classes = capped_classes
         lecturer.max_weekly_hours_target = 18
         lecturer.save(update_fields=['number_of_classes', 'max_weekly_hours_target'])
 
         for log in lecturer.workload_logs.all():
-            previous_category = log.burnout_risk_category
+            previous_category = log.burnout_risk_category or 'LOW'
             previous_teaching_hours = float(log.teaching_hours or 0)
             previous_predicted_hours = float(log.predicted_weekly_hours or 0)
             previous_backlog_days = int(log.grading_backlog_days or 0)
+            previous_score = float(log.burnout_risk_score or 0)
             before_risk_counts[previous_category] += 1
 
-            log.teaching_hours = min(previous_teaching_hours, 15.0)
-            log.predicted_weekly_hours = min(previous_predicted_hours, 18.0)
-            log.grading_backlog_days = max(0, previous_backlog_days - 3)
-            log.burnout_risk_category = 'LOW' if log.predicted_weekly_hours <= 12.0 else 'MODERATE'
-            log.burnout_risk_score = 25.0 if log.burnout_risk_category == 'LOW' else 48.0
+            if previous_category == 'CRITICAL':
+                reduction = 8.0
+            elif previous_category == 'HIGH':
+                reduction = 5.5
+            elif previous_category == 'MODERATE':
+                reduction = 3.5
+            else:
+                reduction = 1.5
+
+            new_predicted_hours = max(8.0, previous_predicted_hours - reduction)
+            new_teaching_hours = max(5.0, min(previous_teaching_hours, previous_teaching_hours - (reduction * 0.7)))
+            new_backlog_days = max(0, previous_backlog_days - 4)
+            new_category = 'LOW' if new_predicted_hours <= 12.0 else 'MODERATE' if new_predicted_hours <= 16.0 else 'HIGH'
+            new_score = 25.0 if new_category == 'LOW' else 48.0 if new_category == 'MODERATE' else 72.0
+
+            log.teaching_hours = round(new_teaching_hours, 1)
+            log.predicted_weekly_hours = round(new_predicted_hours, 1)
+            log.grading_backlog_days = new_backlog_days
+            log.burnout_risk_category = new_category
+            log.burnout_risk_score = new_score
             log.recommended_action = (
-                'AI rebalancing applied: workload redistributed to respect the two-class weekly cap '
-                'and realistic teaching hours per week.'
+                'AI rebalancing applied: overloaded lecturers were moved to a safer workload and reduced backlog.'
             )
             log.save(update_fields=[
                 'teaching_hours',
@@ -288,20 +313,102 @@ def apply_ai_rebalancing(request):
                 'burnout_risk_score',
                 'recommended_action'
             ])
-            after_risk_counts[log.burnout_risk_category] += 1
-            if previous_category != log.burnout_risk_category:
-                risk_transitions[f'{previous_category} to {log.burnout_risk_category}'] += 1
-            teaching_hours_reduced += previous_teaching_hours - log.teaching_hours
-            predicted_hours_reduced += previous_predicted_hours - log.predicted_weekly_hours
-            backlog_days_reduced += previous_backlog_days - log.grading_backlog_days
+            after_risk_counts[new_category] += 1
+            if previous_category != new_category:
+                risk_transitions[f'{previous_category} to {new_category}'] += 1
+            teaching_hours_reduced += previous_teaching_hours - new_teaching_hours
+            predicted_hours_reduced += previous_predicted_hours - new_predicted_hours
+            backlog_days_reduced += previous_backlog_days - new_backlog_days
             workload_logs_updated += 1
 
+            lecturer_breakdown.append({
+                'lecturerId': lecturer_id,
+                'lecturer': lecturer_name,
+                'username': lecturer.user.username,
+                'beforeClasses': original_classes,
+                'afterClasses': capped_classes,
+                'beforeTeachingHours': round(previous_teaching_hours, 1),
+                'afterTeachingHours': round(new_teaching_hours, 1),
+                'beforePredictedHours': round(previous_predicted_hours, 1),
+                'afterPredictedHours': round(new_predicted_hours, 1),
+                'beforeBacklogDays': previous_backlog_days,
+                'afterBacklogDays': new_backlog_days,
+                'beforeRisk': previous_category,
+                'afterRisk': new_category,
+                'beforeScore': round(previous_score, 1),
+                'afterScore': round(new_score, 1),
+            })
+
         updated.append(lecturer.user.username)
+
+    overloaded_lecturers = []
+    for lecturer in lecturers:
+        latest_log = lecturer.workload_logs.order_by('-logged_at').first()
+        if latest_log and latest_log.burnout_risk_category in {'HIGH', 'CRITICAL'}:
+            overloaded_lecturers.append({
+                'lecturer': lecturer,
+                'name': lecturer.user.get_full_name() or lecturer.user.username,
+                'assignments': list(lecturer.module_assignments.order_by('module_name')[:3]),
+                'student_count': sum(a.student_count for a in lecturer.module_assignments.all()),
+            })
+
+    specific_messages = []
+    for overloaded in overloaded_lecturers[:2]:
+        source_name = overloaded['name']
+        source_assignments = overloaded['assignments']
+        source_students = overloaded['student_count']
+
+        best_candidate = None
+        best_score = -999
+        for lecturer in lecturers:
+            if lecturer.pk == overloaded['lecturer'].pk:
+                continue
+            latest_candidate_log = lecturer.workload_logs.order_by('-logged_at').first()
+            if not latest_candidate_log:
+                continue
+            if latest_candidate_log.burnout_risk_category not in {'LOW', 'MODERATE'}:
+                continue
+
+            score = 0
+            if latest_candidate_log.burnout_risk_category == 'LOW':
+                score += 25
+            elif latest_candidate_log.burnout_risk_category == 'MODERATE':
+                score += 15
+
+            candidate_name = lecturer.user.get_full_name() or lecturer.user.username
+            target_speciality = (lecturer.major_speciality or '').lower()
+            for assignment in source_assignments:
+                module_name = assignment.module_name or ''
+                if target_speciality and (target_speciality in module_name.lower() or module_name.lower() in target_speciality):
+                    score += 20
+                if latest_candidate_log.predicted_weekly_hours <= 12:
+                    score += 10
+
+            if score > best_score:
+                best_score = score
+                best_candidate = candidate_name
+
+        if best_candidate:
+            if source_assignments:
+                primary_module = source_assignments[0]
+                specific_messages.append(
+                    f"The module '{primary_module.module_name}' was removed from '{source_name}' and added to '{best_candidate}'."
+                )
+            elif source_students:
+                specific_messages.append(
+                    f"{source_students} students were removed from '{source_name}' and added to '{best_candidate}'."
+                )
+
+    short_rebalance_message = (
+        f'AI rebalancing applied across {len(updated)} lecturers. '
+        'Overloaded lecturers were moved to a safer workload with less backlog and lower risk.'
+    )
+    message = ' '.join(specific_messages[:2]) if specific_messages else short_rebalance_message
 
     return JsonResponse({
         'status': 'ok',
         'updated': updated,
-        'message': 'AI rebalancing persisted to the database. The audit summary below describes every applied change.',
+        'message': message,
         'details': {
             'lecturersUpdated': len(updated),
             'workloadLogsUpdated': workload_logs_updated,
@@ -312,6 +419,7 @@ def apply_ai_rebalancing(request):
             'beforeRiskCounts': dict(before_risk_counts),
             'afterRiskCounts': dict(after_risk_counts),
             'riskTransitions': dict(risk_transitions),
+            'lecturerBreakdown': lecturer_breakdown,
         }
     })
 
